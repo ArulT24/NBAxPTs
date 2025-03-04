@@ -103,10 +103,17 @@ def get_player_xPT(player_name, season, season_type, game_date=None):
 
     try:
         # For both scenarios, use playerdashptshots but with optional date filtering
+        
         player_data = playergamelog.PlayerGameLog(
             player_id=player_id, 
             season=season, 
             season_type_all_star=season_type
+        )
+        dash_pt_shots_season_ground = playerdashptshots.PlayerDashPtShots(
+            player_id=player_id, 
+            team_id=team_id, 
+            season=season, 
+            season_type_all_star='Regular Season'
         )
         dash_pt_shots_season = playerdashptshots.PlayerDashPtShots(
             player_id=player_id, 
@@ -114,8 +121,17 @@ def get_player_xPT(player_name, season, season_type, game_date=None):
             season=season, 
             season_type_all_star=season_type
         )
+        closest_defender_shooting_ground = dash_pt_shots_season_ground.closest_defender_shooting.get_data_frame()
         closest_defender_shooting_season = dash_pt_shots_season.closest_defender_shooting.get_data_frame()
         if closest_defender_shooting_season.empty:
+            return {
+                "Player": player_name, 
+                "Season": season, 
+                "GameDate": game_date,
+                "xPT": None, 
+                "error": "No shooting data available"
+            }
+        if closest_defender_shooting_ground.empty:
             return {
                 "Player": player_name, 
                 "Season": season, 
@@ -178,16 +194,16 @@ def get_player_xPT(player_name, season, season_type, game_date=None):
             # Get shots attempted for this specific game - handle NaN values
             
 
-            fg3 = (closest_defender_shooting_game["FG3A"]*closest_defender_shooting_season["FG3_PCT"]).sum()
-            fg2 = (closest_defender_shooting_game["FG2A"]*closest_defender_shooting_season["FG2_PCT"]).sum()
+            fg3 = (closest_defender_shooting_game["FG3A"]*closest_defender_shooting_ground["FG3_PCT"]).sum()
+            fg2 = (closest_defender_shooting_game["FG2A"]*closest_defender_shooting_ground["FG2_PCT"]).sum()
         else:
             # For season data (original functionality)
             # Get season shots attempted - handle NaN values
             # fg2a = float(closest_defender_shooting_season["FG2A"].sum()) if "FG2A" in closest_defender_shooting_season.columns and not pd.isna(closest_defender_shooting_season["FG2A"].sum()) else 0
             # fg3a = float(closest_defender_shooting_season["FG3A"].sum()) if "FG3A" in closest_defender_shooting_season.columns and not pd.isna(closest_defender_shooting_season["FG3A"].sum()) else 0
             
-            fg3 = (closest_defender_shooting_season["FG3A"]*closest_defender_shooting_season["FG3_PCT"]).sum()
-            fg2 = (closest_defender_shooting_season["FG2A"]*closest_defender_shooting_season["FG2_PCT"]).sum()
+            fg3 = (closest_defender_shooting_season["FG3A"]*closest_defender_shooting_ground["FG3_PCT"]).sum()
+            fg2 = (closest_defender_shooting_season["FG2A"]*closest_defender_shooting_ground["FG2_PCT"]).sum()
             # Handle NaN in FTA values
             player_df = player_data.get_data_frames()[0]
             fta = float(player_df['FTA'].sum()) if not player_df.empty and 'FTA' in player_df.columns and not pd.isna(player_df['FTA'].sum()) else 0
